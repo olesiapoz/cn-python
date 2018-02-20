@@ -3,6 +3,10 @@ from flask import make_response
 from flask import jsonify
 import json
 import sqlite3
+from flask import Flask, request, jsonify
+from flask import abort
+from flask import make_response, url_for
+from time import gmtime, strftime
 
 app = Flask(__name__)
 
@@ -24,7 +28,7 @@ def home_index():
 
 def list_users():
     conn = sqlite3.connect('mydb.db')
-    print ("Opened database successfully");
+    print ("Opened database successfully")
     api_list=[]
     cursor = conn.execute("SELECT username, full_name, emailid, password, id from users")
     for row in cursor:
@@ -51,12 +55,11 @@ def list_user(user_id):
     cursor.execute("SELECT * from users where id=?",(user_id,))       
     data = cursor.fetchall()       
     if len(data) != 0:          
-        user = {'username': data[0][0], 'name': data[0][1], 'email': data[0][2], 'password': data[0][3],'id': data[0][4]}
+        user = {'username': data[0][0], 'name': data[0][3], 'email': data[0][1], 'password': data[0][2],'id': data[0][4]}
         conn.close()
     else:
         user = {'Error' : 'user does not exist'}             
-    api_list.append(user)
-    return jsonify({'user': api_list})
+    return jsonify(user)
  
 @app.route('/api/v1/users/<int:user_id>', methods=['GET'])
 def get_user(user_id):
@@ -66,6 +69,31 @@ def get_user(user_id):
 def resource_not_found(error):      
     return make_response(jsonify({'error': 'Resource not found!'}),  404) 
 
+def add_user(new_user):
+    conn = sqlite3.connect('mydb.db')
+    print ("Opened database successfully")
+    api_list=[]
+    cursor=conn.cursor()
+    cursor.execute("SELECT * from users where username=? or emailid=?",(new_user['username'],new_user['email']))
+    data = cursor.fetchall()
+    if len(data) != 0:
+        abort(409)
+    else:
+        cursor.execute("insert into users (username, emailid, password, full_name) values(?,?,?,?)",(new_user['username'],new_user['email'], new_user['password'], new_user['name']))
+        conn.commit()
+        return "Success"
+    conn.close()
+
+@app.route('/api/v1/users', methods=['POST'])
+def create_user():
+    if not request.json or not 'username' in request.json or not 'email' in request.json or not 'password' in request.json:
+        abort(400)
+    user = {'username': request.json['username'], 'email': request.json['email'], 'name': request.json.get('name',""), 'password': request.json['password']}
+    return jsonify({'status': add_user(user)}), 201
+
+@app.errorhandler(400)
+def invalid_request(error):
+    return make_response(jsonify({'error': 'Bad Request'}), 400)
   
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5000, debug=True)
