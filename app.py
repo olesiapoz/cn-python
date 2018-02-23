@@ -1,3 +1,4 @@
+"https://docs.python.org/2/library/doctest.html"
 from flask import Flask
 from flask import make_response
 from flask import jsonify
@@ -82,13 +83,14 @@ def add_user(new_user):
         cursor.execute("insert into users (username, emailid, password, full_name) values(?,?,?,?)",(new_user['username'],new_user['email'], new_user['password'], new_user['name']))
         conn.commit()
         return "Success"
-    conn.close()
+
 
 @app.route('/api/v1/users', methods=['POST'])
 def create_user():
     if not request.json or not 'username' in request.json or not 'email' in request.json or not 'password' in request.json:
         abort(400)
     user = {'username': request.json['username'], 'email': request.json['email'], 'name': request.json.get('name',""), 'password': request.json['password']}
+    print(user)
     return jsonify({'status': add_user(user)}), 201
 
 @app.errorhandler(400)
@@ -108,7 +110,7 @@ def del_user(del_user):
     cursor=conn.cursor()
     cursor.execute("SELECT * from users where username=? ",      (del_user,))
     data = cursor.fetchall()       
-    print ("Data" ,data)       
+    print (data)       
     if len(data) == 0:         
         abort(404)       
     else:        
@@ -132,8 +134,8 @@ def upd_user(user):
         if i != "id":
             print (user, i)
             # cursor.execute("UPDATE users set {0}=? where id=? ", (i, user[i], user['id']))
-        cursor.execute("""UPDATE users SET {0} = ? WHERE id = ?""".format(i), (user[i], user['id']))
-        conn.commit()
+        cursor.execute("""UPDATE users SET {0} = ? WHERE id = ?""".format(i), (user[i], user['id'],))
+    conn.commit()
     return "Success"
 
 @app.route('/api/v1/users/<int:user_id>', methods=['PUT'])
@@ -182,7 +184,7 @@ def add_tweet(new_tweets):
     if len(data) == 0:
         abort(404)
     else:
-        cursor.execute("INSERT into tweets (username, body, tweet_time) values(?,?,?)", (new_tweets['username'], new_tweets['body'], new_tweets['created_at'],))
+        cursor.execute("INSERT into tweets (username, body, tweet_time) values(?,?,?)", (new_tweets['username'], new_tweets['body'], new_tweets['created_at']))
   
     conn.close()
     return "Success"
@@ -193,8 +195,33 @@ def add_tweets():
         abort(400)
     user_tweet = {'username' : request.json['username'], 'body': request.json['body'], 'created_at' : strftime("%Y-%m-%dT%H:%M:%SZ", gmtime())}
     #print (user_tweet)
-    return  jsonify({'status': add_tweet(user_tweet)}), 200
+    """{
+	"username":"mahesh@rocks",
+	"body": "It works" 
+    }"""
+    return  jsonify({'status': add_tweet(user_tweet)}), 201
 
+def list_tweet(user_id):
+    print (user_id)
+    conn = sqlite3.connect('mydb.db')
+    print ("Opened database successfully")
+    api_list=[]       
+    cursor=conn.cursor()
+    cursor.execute("SELECT * from tweets  where id=?",(user_id,))
+    data = cursor.fetchall() 
+    print (data) 
+    if len(data) == 0:
+        abort(404)
+    else: 
+        user = {'id': data[0][0],'username': data[0][1], 'body': data[0][2],'tweet_time': data[0][3]}
+    conn.close()
+    return jsonify(user) 
+
+
+@app.route('/api/v2/tweets/<int:id>', methods=['GET'])
+def get_tweet(id):
+    """curl http://localhost:5000/api/v2/tweets/2"""
+    return list_tweet(id)
 
   
 if __name__ == "__main__":
