@@ -1,3 +1,4 @@
+
 "https://docs.python.org/2/library/doctest.html"
 from flask import Flask
 from flask import make_response
@@ -8,6 +9,7 @@ from flask import Flask, request, jsonify
 from flask import abort
 from flask import make_response, url_for
 from time import gmtime, strftime
+from flask import render_template 
 
 app = Flask(__name__)
 
@@ -223,6 +225,9 @@ def get_tweet(id):
     """curl http://localhost:5000/api/v2/tweets/2"""
     return list_tweet(id)
 
+@app.route('/adduser')
+def adduser():
+    return render_template('adduser.html')
   
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5000, debug=True)
