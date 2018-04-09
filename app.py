@@ -227,7 +227,7 @@ def get_tweet(id):
 
 @app.route('/adduser')
 def adduser():
-    return render_template('adduser.html')
+    return render_template('client/adduser.html')
   
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5000, debug=True)
